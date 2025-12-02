@@ -5,32 +5,35 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 0 * * *" # 每天国际标准时间 0点运行一次
-  workflow_dispatch: # 允许手动点击按钮触发
+    - cron: "0 0 * * *" # 每天 0 点运行
+  workflow_dispatch: # 允许手动运行
 
 jobs:
   sync_latest_from_upstream:
-    name: Sync latest commits from upstream repo
     runs-on: ubuntu-latest
-    if: ${{ github.event.repository.fork }} # 只有是 Fork 的仓库才运行
+    if: ${{ github.event.repository.fork }}
 
     steps:
-      # 1. 标准 checkout
       - name: Checkout target repo
         uses: actions/checkout@v3
-
-      # 2. 同步上游变更
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
-          upstream_sync_repo: ccbikai/Sink # 原仓库地址，不要改这里的格式
-          upstream_sync_branch: main       # 原仓库的主分支名 (通常是 main 或 master)
-          target_sync_branch: main         # 你仓库的分支名
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # 自动生成的 token，无需手动设置
-          test_mode: false
+          fetch-depth: 0 
 
-      # 3. 如果有更新，打印日志
-      - name: New commits found
-        if: steps.sync.outputs.has_new_commits == 'true'
-        run: echo "New commits were found to sync."
+      - name: Sync upstream changes
+        run: |
+          # 1. 配置用户信息
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # 2. 添加上游仓库 (注意：这里假设上游也是 master，如果上游是 main，请修改 upstream/ 后面的名字)
+          git remote add upstream https://github.com/ccbikai/Sink.git
+          git fetch upstream
+          
+          # 3. 切换到你的 master 分支 (修正点)
+          git checkout master
+          
+          # 4. 合并上游的 master 分支 (修正点)
+          git merge upstream/master
+          
+          # 5. 推送回你的仓库
+          git push origin master
