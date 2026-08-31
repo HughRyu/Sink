@@ -1,14 +1,16 @@
 import type { H3Event } from 'h3'
 import type { RawBuilder } from 'kysely'
+import type { Query } from '#shared/schemas/query'
 import { sql } from 'kysely'
 import { QuerySchema } from '#shared/schemas/query'
+import { withCounterLookback } from '#server/utils/query-filter'
 
 function weightedDistinct(column: string): RawBuilder<number> {
   return sql<number>`ROUND(COUNT(DISTINCT ${sql.ref(column)}) * SUM(_sample_interval) / COUNT())`
 }
 
 function query2sql(query: Query, event: H3Event) {
-  const filter = buildAnalyticsFilter(query)
+  const filter = buildAnalyticsFilter(withCounterLookback(query))
   const { dataset } = useRuntimeConfig(event)
   const analyticsQuery = createAnalyticsQuery(dataset)
   const filteredQuery = filter ? analyticsQuery.where(filter) : analyticsQuery
