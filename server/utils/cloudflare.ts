@@ -19,5 +19,8 @@ export function useWAE(event: H3Event, query: Compilable) {
     body: compiledQuery,
     retry: 1,
     retryDelay: 100, // ms
+    onResponseError({ response }) {
+      console.error('[analytics] SQL request failed', response.status, response._data)
+    },
   })
 }
